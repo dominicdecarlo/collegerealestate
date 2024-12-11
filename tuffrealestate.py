@@ -134,12 +134,19 @@ class PropertyValuePredictor:
         base_monthly_rent = (base_price / inputs['city_data']['P/R Ratio']) / 12
         
         # Adjust rent based on property specifics
-        rent_distance_factor = max(0.8, 1 - (inputs['distance_to_campus'] * 0.04))
-        rent_size_factor = (inputs['square_footage'] / avg_sqft) ** 0.7
-        rent_bathroom_factor = 1 + (0.04 * (inputs['bathrooms'] - 1))
+        if inputs['distance_to_campus'] <= 0.6:
+            rent_distance_factor = 1 - (inputs['distance_to_campus'] * 0.04)  # Mild reduction
+        else:
+            rent_distance_factor = 0.96 - (inputs['distance_to_campus'] * 0.15)  # Steeper reduction beyond 0.6 miles
+
+        rent_size_factor = (inputs['square_footage'] / avg_sqft) ** 0.6
+        rent_bathroom_factor = 1 + (0.03 * (inputs['bathrooms'] - 1))
+        rent_bedroom_factor = 1 + (0.3 * (inputs['bedrooms'] - 1))
+
+        location_premium = 1 + (0.1 if inputs['distance_to_campus'] <= 0.5 else 0)
         
-        # Calculate final monthly rent (Multiply base_monthly_rent by demand factor(will incorperate later))
-        monthly_rent = (base_monthly_rent * 2.2) * rent_distance_factor * rent_size_factor * rent_bathroom_factor
+        # Calculate final monthly rent (Multiply base_monthly_rent by potential demand factor(will incorperate later))
+        monthly_rent = base_monthly_rent * location_premium * rent_distance_factor * rent_size_factor * rent_bathroom_factor * rent_bedroom_factor
         
         # Calculate 5-year forecast (assuming 3% annual appreciation)
         appreciation_rate = 0.03 - (inputs['distance_to_campus'] * 0.001)
